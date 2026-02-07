@@ -7,14 +7,43 @@
 $lang = isset($_GET['lang']) ? $_GET['lang'] : 'ar';
 $dir = ($lang == 'ar') ? 'rtl' : 'ltr';
 
+require 'dashboard/db.php';
+
 function t($ar, $en)
 {
     global $lang;
     return ($lang == 'ar') ? $ar : $en;
 }
 
-// Course Data
-$courses = [
+// Fetch Courses from DB
+try {
+    // Force seed if not 6 courses
+    $count = $pdo->query("SELECT COUNT(*) FROM courses")->fetchColumn();
+    if ($count != 6) {
+        $pdo->exec("DELETE FROM courses");
+        $default_courses = [
+            ['title' => 'تحفيظ القرآن الكريم', 'description' => 'دورة شاملة لحفظ كتاب الله بالتلقي والمشافهة مع خطة فردية لكل طالب.', 'image' => 'assets/images/quran_course_img_1770121397437.png', 'category' => 'القرآن الكريم', 'badge' => 'الأكثر طلباً', 'duration' => 'مستمر', 'price' => '$49', 'features' => json_encode(['حفظ بالتلقي والمشافهة', 'تصحيح التلاوة بدقة', 'خطة حفظ فردية مستدامة', 'متابعة يومية مع الشيخ'])],
+            ['title' => 'دورة نور البيان للأطفال', 'description' => 'تأسيس قوي للأطفال في قراءة اللغة العربية والقرآن الكريم بأساليب ممتعة.', 'image' => 'assets/images/noor_bayan_course_img_1770121413393.png', 'category' => 'اللغة العربية', 'badge' => 'للمبتدئين', 'duration' => '8 أسابيع', 'price' => '$29', 'features' => json_encode(['إتقان القراءة بالحركات', 'تمكين مخارج الحروف', 'تأسيس قوي في الكتابة', 'أساليب مشوقة للأطفال'])],
+            ['title' => 'إتقان التجويد العملي', 'description' => 'شرح متون التجويد مع تطبيق عملي مكثف لتحسين الصوت والأداء.', 'image' => 'assets/images/tajweed_course_img_1770121430041.png', 'category' => 'التجويد', 'badge' => 'احترافي', 'duration' => '12 أسبوع', 'price' => '$59', 'features' => json_encode(['شرح نظري وتطبيق عملي', 'دراسة متون التجويد', 'تحسين الصوت والأداء', 'اختبارات دورية مكثفة'])],
+            ['title' => 'أساسيات الدراسات الإسلامية', 'description' => 'تعلم العقيدة والفقه والأخلاق بأسلوب عصري يربط العلم بالعمل.', 'image' => 'assets/images/islamic_studies_course_img_1770121444719.png', 'category' => 'شرعي', 'badge' => 'شامل', 'duration' => '10 أسابيع', 'price' => '$39', 'features' => json_encode(['أساسيات العقيدة الصحيحة', 'فقه العبادات والمعاملات', 'شرح الأحاديث النبوية', 'تزكية النفس والأخلاق'])],
+            ['title' => 'تفسير آيات الأحكام', 'description' => 'فهم مقاصد الآيات واستنباط الأحكام الشرعية بأسلوب ميسر.', 'image' => 'assets/images/tafsir_course_img_v2_1770121485567.png', 'category' => 'تفسير', 'badge' => 'مميز', 'duration' => '14 أسبوع', 'price' => '$69', 'features' => json_encode(['فهم مقاصد الآيات', 'استنباط الأحكام الشرعية', 'ربط التفسير بالواقع', 'تحليل لغوي وبياني'])],
+            ['title' => 'اللغة العربية لغير الناطقين', 'description' => 'تعلم النحو والصرف وتطوير مهارات التحدث بطلاقة.', 'image' => 'assets/images/arabic_lang_course_img_1770121459816.png', 'category' => 'لغة', 'badge' => 'مكثف', 'duration' => '24 أسبوع', 'price' => '$129', 'features' => json_encode(['النحو والصرف بتبسيط', 'تنمية مهارات التحدث', 'فهم الأدب والبلاغة', 'إعداد لاختبارات الكفاءة'])]
+        ];
+        $is = $pdo->prepare("INSERT INTO courses (title, description, image, category, badge, duration, price, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        foreach ($default_courses as $c)
+            $is->execute(array_values($c));
+    }
+
+    $stmt = $pdo->query("SELECT * FROM courses WHERE status = 'active' ORDER BY created_at DESC");
+    while ($row = $stmt->fetch()) {
+        $row['features'] = json_decode($row['features'] ?? '[]', true) ?: [];
+        $db_courses[] = $row;
+    }
+} catch (Exception $e) {
+}
+
+// Fallback to static data if DB is empty
+$display_courses = !empty($db_courses) ? $db_courses : [
     [
         'title' => t('تحفيظ القرآن الكريم', 'Memorizing Quran'),
         'category' => t('القرآن', 'Quran'),
@@ -41,62 +70,6 @@ $courses = [
             t('تمكين مخارج الحروف', 'Correcting Articulation Points'),
             t('تأسيس قوي في الكتابة', 'Strong Foundation in Writing'),
             t('أساليب مشوقة للأطفال', 'Engaging Methods for Kids')
-        ]
-    ],
-    [
-        'title' => t('إتقان التجويد', 'Tajweed Mastery'),
-        'category' => t('التجويد', 'Tajweed'),
-        'duration' => t('12 أسبوع', '12 Weeks'),
-        'price' => '$59',
-        'image' => 'assets/images/tajweed_course_img_1770121430041.png',
-        'badge' => t('احترافي', 'Pro'),
-        'features' => [
-            t('شرح نظري وتطبيق عملي', 'Theory & Practical Application'),
-            t('دراسة متون التجويد', 'Studying Tajweed Texts'),
-            t('تحسين الصوت والأداء', 'Improving Voice & Performance'),
-            t('اختبارات دورية مكثفة', 'Intensive Periodic Tests')
-        ]
-    ],
-    [
-        'title' => t('الدراسات الإسلامية', 'Islamic Studies'),
-        'category' => t('شرعي', 'Islamic'),
-        'duration' => t('10 أسابيع', '10 Weeks'),
-        'price' => '$39',
-        'image' => 'assets/images/islamic_studies_course_img_1770121444719.png',
-        'badge' => t('شامل', 'Global'),
-        'features' => [
-            t('أساسيات العقيدة الصحيحة', 'Basics of Correct Creed'),
-            t('فقه العبادات والمعاملات', 'Islamic Jurisprudence (Fiqh)'),
-            t('شرح الأحاديث النبوية', 'Sunnah & Hadith Studies'),
-            t('تزكية النفس والأخلاق', 'Self-purification & Ethics')
-        ]
-    ],
-    [
-        'title' => t('اللغة العربية', 'Arabic Language'),
-        'category' => t('لغة', 'Language'),
-        'duration' => t('24 أسبوع', '24 Weeks'),
-        'price' => '$129',
-        'image' => 'assets/images/arabic_lang_course_img_1770121459816.png',
-        'badge' => t('مكثف', 'Intensive'),
-        'features' => [
-            t('النحو والصرف بطريقة مبسطة', 'Simplified Grammar (Nahw)'),
-            t('تنمية مهارات التحدث', 'Developing Speaking Skills'),
-            t('فهم الأدب والبلاغة', 'Literature & Rhetoric'),
-            t('إعداد لاختبارات الكفاءة', 'Efficiency Tests Preparation')
-        ]
-    ],
-    [
-        'title' => t('تفسير آيات الأحكام', 'Tafsir Studies'),
-        'category' => t('تفسير', 'Tafsir'),
-        'duration' => t('14 أسبوع', '14 Weeks'),
-        'price' => '$69',
-        'image' => 'assets/images/tafsir_course_img_v2_1770121485567.png',
-        'badge' => t('مميز', 'Premium'),
-        'features' => [
-            t('فهم مقاصد الآيات', 'Understanding Verse Objectives'),
-            t('استنباط الأحكام الشرعية', 'Deriving Legal Rulings'),
-            t('ربط التفسير بالواقع', 'Tafsir in Modern Context'),
-            t('تحليل لغوي وبياني', 'Linguistic & Graphic Analysis')
         ]
     ]
 ];
@@ -134,7 +107,10 @@ $courses = [
                     },
                     keyframes: {
                         float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-20px)' } }
-                    }
+                    },
+                    fontFamily: {
+                        sans: [<?php echo ($lang == 'ar') ? "'IBM Plex Sans Arabic'" : "'Outfit'"; ?>, 'ui-sans-serif', 'system-ui'],
+                    },
                 }
             }
         }
@@ -151,10 +127,16 @@ $courses = [
     <style>
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;600;700&family=Outfit:wght@300;400;600;900&display=swap');
 
+        * {
+            font-family:
+                <?php echo ($lang == 'ar') ? "'IBM Plex Sans Arabic', sans-serif" : "'Outfit', sans-serif"; ?>
+                !important;
+        }
+
         body {
             font-family:
                 <?php echo ($lang == 'ar') ? "'IBM Plex Sans Arabic', sans-serif" : "'Outfit', sans-serif"; ?>
-            ;
+                !important;
             scroll-behavior: smooth;
             transition: background-color 0.5s ease, color 0.5s ease;
         }
@@ -256,10 +238,10 @@ $courses = [
                     :class="darkMode ? 'text-white' : 'text-slate-600 border-black/5 bg-black/5'">
                     <?php echo ($lang == 'ar') ? 'EN' : 'AR'; ?>
                 </a>
-                <button
+                <a href="login.php"
                     class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-indigo-700 transition-all">
                     <?php echo t('دخول', 'Login'); ?>
-                </button>
+                </a>
             </div>
         </div>
     </header>
@@ -285,7 +267,7 @@ $courses = [
                     <?php echo t('نحن لا نقدم مجرد دورات، بل نصحبك في رحلة إيمانية وتعليمية متكاملة باستخدام أحدث وسائل التكنولوجيا الرقمية لخدمة كتاب الله.', 'We don\'t just provide courses, we take you on a spiritual journey.'); ?>
                 </p>
                 <div class="flex flex-wrap gap-8 items-center">
-                    <a href="#courses"
+                    <a href="register.php"
                         class="bg-white text-slate-900 px-12 py-5 rounded-2xl font-black text-sm shadow-2xl hover:scale-105 transition-all uppercase tracking-widest flex items-center gap-3">
                         <?php echo t('ابدأ الآن مجاناً', 'Join for Free'); ?>
                     </a>
@@ -499,23 +481,25 @@ $courses = [
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-                <?php foreach ($courses as $course): ?>
+                <?php foreach ($display_courses as $course): ?>
                     <div class="rounded-[3.5rem] overflow-hidden group transition-all duration-500 flex flex-col h-full border backdrop-blur-xl"
                         :class="darkMode ? 'bg-white/5 border-white/5 hover:border-indigo-500/30' : 'bg-white border-black/5 shadow-xl hover:shadow-2xl shadow-slate-200/50'">
                         <div class="h-64 relative overflow-hidden shrink-0">
                             <img src="<?php echo $course['image']; ?>"
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">
-                            <div
-                                class="absolute top-6 left-6 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-widest border border-white/10">
-                                <?php echo $course['badge']; ?>
-                            </div>
+                            <?php if (!empty($course['badge'])): ?>
+                                <div
+                                    class="absolute top-6 left-6 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-widest border border-white/10">
+                                    <?php echo $course['badge']; ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="absolute inset-0 bg-gradient-to-t via-transparent to-transparent opacity-60"
                                 :class="darkMode ? 'from-slate_950' : 'from-white/20'"></div>
                         </div>
                         <div class="p-10 flex flex-col flex-grow">
                             <span
                                 class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3 block shrink-0">
-                                <?php echo $course['category']; ?>
+                                <?php echo $course['category'] ?: t('عام', 'General'); ?>
                             </span>
                             <h4 class="text-2xl font-black mb-6 group-hover:text-indigo-500 transition-colors shrink-0"
                                 :class="darkMode ? 'text-white' : 'text-slate-900'">
@@ -569,10 +553,10 @@ $courses = [
                         <?php echo t('نصف مليون متعلم بدأوا رحلتهم بالفعل، انضم إلينا اليوم واحصل على تقييم مجاني لمستواك في حفظ القرآن.', 'Join half a million learners today and get a free assessment.'); ?>
                     </p>
                     <div class="flex flex-wrap justify-center gap-6">
-                        <button
+                        <a href="register.php"
                             class="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-sm shadow-2xl hover:scale-105 transition-all uppercase tracking-widest italic">
                             <?php echo t('سجل الآن مجاناً', 'Free Registration'); ?>
-                        </button>
+                        </a>
                         <button
                             class="px-10 py-5 rounded-2xl font-black text-sm transition-all uppercase tracking-widest border"
                             :class="darkMode ? 'bg-white/5 text-white border-white/10 hover:bg-white/10' : 'border-black/5 text-slate-700 hover:bg-black/5 shadow-sm'">

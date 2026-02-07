@@ -1,4 +1,5 @@
 <?php
+ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -55,7 +56,7 @@ $page_title = isset($page_title) ? $page_title : t('لوحة التحكم', 'Das
                         }
                     },
                     fontFamily: {
-                        sans: ['IBM Plex Sans Arabic', 'ui-sans-serif', 'system-ui'],
+                        sans: [<?php echo ($lang == 'ar') ? "'IBM Plex Sans Arabic'" : "'Outfit'"; ?>, 'ui-sans-serif', 'system-ui'],
                     }
                 }
             }
@@ -64,10 +65,18 @@ $page_title = isset($page_title) ? $page_title : t('لوحة التحكم', 'Das
 
     <!-- Fonts -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;900&display=swap');
+
+        * {
+            font-family:
+                <?php echo ($lang == 'ar') ? "'IBM Plex Sans Arabic', sans-serif" : "'Outfit', sans-serif"; ?>
+                !important;
+        }
 
         body {
-            font-family: 'IBM Plex Sans Arabic', sans-serif;
+            font-family:
+                <?php echo ($lang == 'ar') ? "'IBM Plex Sans Arabic', sans-serif" : "'Outfit', sans-serif"; ?>
+                !important;
         }
 
         /* Custom Scrollbar */
