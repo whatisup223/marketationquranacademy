@@ -37,18 +37,31 @@ try {
     ");
 
     // Add columns if they don't exist (Migration)
-    $columns = [
+    $courses_columns = [
         'image' => 'TEXT',
         'category' => 'TEXT',
         'badge' => 'TEXT',
         'features' => 'TEXT',
         'duration' => 'TEXT'
     ];
-    foreach ($columns as $col => $type) {
+    foreach ($courses_columns as $col => $type) {
         try {
             $pdo->exec("ALTER TABLE courses ADD COLUMN $col $type");
         } catch (Exception $e) {
-        } // Ignore if already exists
+        }
+    }
+
+    $users_columns = [
+        'status' => "TEXT DEFAULT 'active'",
+        'phone' => 'TEXT',
+        'bio' => 'TEXT',
+        'avatar' => 'TEXT'
+    ];
+    foreach ($users_columns as $col => $type) {
+        try {
+            $pdo->exec("ALTER TABLE users ADD COLUMN $col $type");
+        } catch (Exception $e) {
+        }
     }
 
     $pdo->exec("
@@ -57,6 +70,48 @@ try {
             setting_key TEXT UNIQUE NOT NULL,
             setting_value TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            course_id INTEGER,
+            teacher_id INTEGER,
+            title TEXT NOT NULL,
+            meeting_link TEXT,
+            start_time DATETIME,
+            status TEXT DEFAULT 'scheduled', -- scheduled, ongoing, completed, cancelled
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (course_id) REFERENCES courses(id),
+            FOREIGN KEY (teacher_id) REFERENCES users(id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS enrollments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            course_id INTEGER,
+            status TEXT DEFAULT 'active',
+            enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (course_id) REFERENCES courses(id),
+            UNIQUE(user_id, course_id)
+        )
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            amount DECIMAL(10,2),
+            currency TEXT DEFAULT 'USD',
+            method TEXT, -- Stripe, PayPal, Transfer
+            status TEXT DEFAULT 'pending', -- pending, completed, failed
+            transaction_id TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ");
 
@@ -71,7 +126,7 @@ try {
                 'category' => 'القرآن الكريم',
                 'badge' => 'الأكثر طلباً',
                 'duration' => 'مستمر',
-                'price' => '$49',
+                'price' => 49,
                 'features' => json_encode(['حفظ بالتلقي والمشافهة', 'تصحيح التلاوة بدقة', 'خطة حفظ فردية مستدامة', 'متابعة يومية مع الشيخ'])
             ],
             [
@@ -81,7 +136,7 @@ try {
                 'category' => 'اللغة العربية',
                 'badge' => 'للمبتدئين',
                 'duration' => '8 أسابيع',
-                'price' => '$29',
+                'price' => 29,
                 'features' => json_encode(['إتقان القراءة بالحركات', 'تمكين مخارج الحروف', 'تأسيس قوي في الكتابة', 'أساليب مشوقة للأطفال'])
             ],
             [
@@ -91,7 +146,7 @@ try {
                 'category' => 'التجويد',
                 'badge' => 'احترافي',
                 'duration' => '12 أسبوع',
-                'price' => '$59',
+                'price' => 59,
                 'features' => json_encode(['شرح نظري وتطبيق عملي', 'دراسة متون التجويد', 'تحسين الصوت والأداء', 'اختبارات دورية مكثفة'])
             ],
             [
@@ -101,7 +156,7 @@ try {
                 'category' => 'شرعي',
                 'badge' => 'شامل',
                 'duration' => '10 أسابيع',
-                'price' => '$39',
+                'price' => 39,
                 'features' => json_encode(['أساسيات العقيدة الصحيحة', 'فقه العبادات والمعاملات', 'شرح الأحاديث النبوية', 'تزكية النفس والأخلاق'])
             ],
             [
@@ -111,7 +166,7 @@ try {
                 'category' => 'تفسير',
                 'badge' => 'مميز',
                 'duration' => '14 أسبوع',
-                'price' => '$69',
+                'price' => 69,
                 'features' => json_encode(['فهم مقاصد الآيات', 'استنباط الأحكام الشرعية', 'ربط التفسير بالواقع', 'تحليل لغوي وبياني'])
             ],
             [
@@ -121,7 +176,7 @@ try {
                 'category' => 'لغة',
                 'badge' => 'مكثف',
                 'duration' => '24 أسبوع',
-                'price' => '$129',
+                'price' => 129,
                 'features' => json_encode(['النحو والصرف بتبسيط', 'تنمية مهارات التحدث', 'فهم الأدب والبلاغة', 'إعداد لاختبارات الكفاءة'])
             ]
         ];

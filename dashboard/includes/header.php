@@ -10,8 +10,28 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) != 'login.php
     // exit;
 }
 
-$user_name = $_SESSION['user_name'] ?? 'Admin User';
-$user_role = $_SESSION['user_role'] ?? 'admin';
+$user_name = $_SESSION['user_name'] ?? 'Guest';
+$user_role = $_SESSION['user_role'] ?? 'student';
+
+// --- STRICT ROLE PROTECTION ---
+$current_path = $_SERVER['PHP_SELF'];
+$is_admin_path = strpos($current_path, '/admin/') !== false;
+$is_teacher_path = strpos($current_path, '/teacher/') !== false;
+$is_student_path = strpos($current_path, '/student/') !== false;
+
+if ($is_admin_path && $user_role !== 'admin') {
+    header("Location: ../index.php");
+    exit;
+}
+if ($is_teacher_path && $user_role !== 'teacher') {
+    header("Location: ../index.php");
+    exit;
+}
+if ($is_student_path && $user_role !== 'student') {
+    header("Location: ../index.php");
+    exit;
+}
+// ------------------------------
 
 // Language & Translation Helper
 $lang = isset($_GET['lang']) ? $_GET['lang'] : 'ar';
